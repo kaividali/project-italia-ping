@@ -3,7 +3,7 @@
 name: ping
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '4-59/15 * * * *'   # minutes 4, 19, 34, 49: GitHub delays runs on the busy quarter-hour marks
     - cron: '17 4 * * 1'
   workflow_dispatch:
 permissions: {}
