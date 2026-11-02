@@ -1,0 +1,37 @@
+# Wakes Project Italia's watcher (https://project-italia-nu.vercel.app) every 15 minutes, so its charts and money flows
+# keep sampling when nobody is on the site. The site only reads the game. The log shows the HTTP status, nothing else.
+name: ping
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: ping
+  cancel-in-progress: false
+jobs:
+  ping:
+    if: github.event.schedule != '17 4 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Wake the watcher
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          code=$(curl -sS --max-time 180 -o /dev/null -w '%{http_code}' -H "authorization: Bearer $CRON_SECRET" https://project-italia-nu.vercel.app/api/cron/watch)
+          echo "watcher answered $code"
+          test "$code" = 200
+  keepalive:
+    # GitHub pauses schedules in a public repository after 60 days without activity; enabling it again weekly keeps it on
+    if: github.event.schedule == '17 4 * * 1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+    steps:
+      - name: Keep the schedule on
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/ping.yml/enable"
